@@ -7,10 +7,10 @@ pushd $DIR
 
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-$DIR/../artifacts}"
 
-if [ -z $(pgrep consul) ]; then
-  nohup consul agent -dev > /tmp/consul.log 2>&1 &
-  sleep 5s
-fi
+docker compose build
+
+docker compose up -d consul
+sleep 5s
 
 consul kv import @$ARTIFACTS_DIR/kv.json  
 

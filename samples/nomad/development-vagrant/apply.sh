@@ -16,7 +16,7 @@ sleep 5s
 nohup nomad agent -dev -config=$DIR/nomad.hcl > $ARTIFACTS_DIR/nomad.log 2>&1 &
 sleep 5s
 
-export NOMAD_ADDR="http://127.0.0.1:4646"
+source ./env.sh
 
 nomad server members
 nomad node status

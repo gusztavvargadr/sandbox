@@ -1,0 +1,6 @@
+services:
+  consul:
+    build:
+      context: .
+      dockerfile: consul.Dockerfile
+    network_mode: host

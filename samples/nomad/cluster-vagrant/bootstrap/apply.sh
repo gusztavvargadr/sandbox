@@ -8,10 +8,10 @@ pushd $DIR
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-$DIR/../artifacts}"
 mkdir -p $ARTIFACTS_DIR
 
-if [ -z $(pgrep consul) ]; then
-  nohup consul agent -dev > /tmp/consul.log 2>&1 &
-  sleep 5s
-fi
+docker compose build
+
+docker compose up -d consul
+sleep 5s
 
 if [ -f $ARTIFACTS_DIR/kv.json ]; then
   consul kv import @$ARTIFACTS_DIR/kv.json
@@ -22,11 +22,9 @@ KV_PATH=nomad
 if [ -z $(consul kv get -keys $KV_PATH/core) ]; then
   CONFIG_DIR="/etc/nomad.d"
   DATA_DIR="/opt/nomad/data"
-  DATACENTER="dc1"
 
   consul kv put $KV_PATH/core/config_dir $CONFIG_DIR
   consul kv put $KV_PATH/core/data_dir $DATA_DIR
-  consul kv put $KV_PATH/core/datacenter $DATACENTER
 fi
 
 if [ -z $(consul kv get -keys $KV_PATH/gossip) ]; then
@@ -54,6 +52,8 @@ if [ -z $(consul kv get -keys $KV_PATH/tls) ]; then
   popd
 fi
 
+consul kv export $KV_PATH > $ARTIFACTS_DIR/kv.json
+
 if [ -z $(pgrep nomad) ]; then
   sudo consul-template -config ./templates.hcl -once
   sudo chown -R nomad:nomad $(consul kv get $KV_PATH/core/config_dir)
@@ -63,15 +63,12 @@ if [ -z $(pgrep nomad) ]; then
   sleep 15s
 fi
 
-export NOMAD_ADDR="https://127.0.0.1:4646"
-export NOMAD_CAPATH="$(consul kv get $KV_PATH/core/config_dir)/tls/ca-cert.pem"
+source ../core/env.sh
 
 if [ -z $(consul kv get -keys $KV_PATH/acl) ]; then
   export NOMAD_TOKEN=$(nomad acl bootstrap -json | jq -r .SecretID)
   consul kv put $KV_PATH/acl/bootstrap_token $NOMAD_TOKEN
 fi
-
-source ../core/env.sh
 
 nomad server members
 nomad node status
