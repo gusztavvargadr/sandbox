@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 KV_PATH=nomad
 
 export NOMAD_ADDR="http://127.0.0.1:4646"

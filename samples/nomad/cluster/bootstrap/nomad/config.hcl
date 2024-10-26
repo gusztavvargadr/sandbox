@@ -19,8 +19,6 @@ server {
 
 client {
   enabled = true
-
-  # cpu_total_compute = 2000
 }
 
 tls {
