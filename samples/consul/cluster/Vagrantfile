@@ -3,8 +3,8 @@ directory = File.dirname(__FILE__)
 load "#{directory}/../../../src/core.Vagrantfile"
 
 bootstrap_enabled = true
-server_count = 0
-client_count = 0
+server_count = 1
+client_count = 1
 
 scripts_directory = "/vagrant"
 

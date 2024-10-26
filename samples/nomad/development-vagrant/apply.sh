@@ -8,12 +8,10 @@ pushd $DIR
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-$DIR/artifacts}"
 mkdir -p $ARTIFACTS_DIR
 
-docker compose build
-
-docker compose up -d consul
+docker compose up -d
 sleep 5s
 
-nohup nomad agent -dev -config=$DIR/nomad.hcl > $ARTIFACTS_DIR/nomad.log 2>&1 &
+nohup nomad agent -dev -config=./nomad.hcl > $ARTIFACTS_DIR/nomad.log 2>&1 &
 sleep 5s
 
 source ./env.sh

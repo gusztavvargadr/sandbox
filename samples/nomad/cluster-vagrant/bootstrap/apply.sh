@@ -8,74 +8,63 @@ pushd $DIR
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-$DIR/../artifacts}"
 mkdir -p $ARTIFACTS_DIR
 
-docker compose build
-
-docker compose up -d consul
+pushd ../core
+docker compose up -d
 sleep 5s
-
-if [ -f $ARTIFACTS_DIR/kv.json ]; then
-  consul kv import @$ARTIFACTS_DIR/kv.json
-fi
+popd
 
 KV_PATH=nomad
 
-if [ -z $(consul kv get -keys $KV_PATH/core) ]; then
-  CONFIG_DIR="/etc/nomad.d"
-  DATA_DIR="/opt/nomad/data"
+CONFIG_DIR="/etc/nomad.d"
+DATA_DIR="/opt/nomad/data"
 
-  consul kv put $KV_PATH/core/config_dir $CONFIG_DIR
-  consul kv put $KV_PATH/core/data_dir $DATA_DIR
-fi
+consul kv put $KV_PATH/core/config_dir $CONFIG_DIR
+consul kv put $KV_PATH/core/data_dir $DATA_DIR
 
-if [ -z $(consul kv get -keys $KV_PATH/gossip) ]; then
-  GOSSIP_KEY=$(nomad operator gossip keyring generate)
+GOSSIP_KEY=$(nomad operator gossip keyring generate)
 
-  consul kv put $KV_PATH/gossip/key $GOSSIP_KEY
-fi
+consul kv put $KV_PATH/gossip/key $GOSSIP_KEY
 
-if [ -z $(consul kv get -keys $KV_PATH/tls) ]; then
-  pushd $ARTIFACTS_DIR
+pushd $ARTIFACTS_DIR
 
-  nomad tls ca create
-  consul kv put $KV_PATH/tls/ca_cert @nomad-agent-ca.pem
-  consul kv put $KV_PATH/tls/ca_key @nomad-agent-ca-key.pem
+nomad tls ca create
+consul kv put $KV_PATH/tls/ca_cert @nomad-agent-ca.pem
+consul kv put $KV_PATH/tls/ca_key @nomad-agent-ca-key.pem
 
-  nomad tls cert create -server
-  consul kv put $KV_PATH/tls/server_cert @global-server-nomad.pem
-  consul kv put $KV_PATH/tls/server_key @global-server-nomad-key.pem
+nomad tls cert create -server
+consul kv put $KV_PATH/tls/server_cert @global-server-nomad.pem
+consul kv put $KV_PATH/tls/server_key @global-server-nomad-key.pem
 
-  nomad tls cert create -client
-  consul kv put $KV_PATH/tls/client_cert @global-client-nomad.pem
-  consul kv put $KV_PATH/tls/client_key @global-client-nomad-key.pem
+nomad tls cert create -client
+consul kv put $KV_PATH/tls/client_cert @global-client-nomad.pem
+consul kv put $KV_PATH/tls/client_key @global-client-nomad-key.pem
 
-  rm -f *.pem
-  popd
-fi
+rm -f *.pem
+popd
 
-consul kv export $KV_PATH > $ARTIFACTS_DIR/kv.json
+sudo consul-template -config ./templates.hcl -once
+sudo chown -R nomad:nomad $(consul kv get $KV_PATH/core/config_dir)
 
-if [ -z $(pgrep nomad) ]; then
-  sudo consul-template -config ./templates.hcl -once
-  sudo chown -R nomad:nomad $(consul kv get $KV_PATH/core/config_dir)
+sudo systemctl enable nomad.service
+sudo systemctl restart nomad.service
+sleep 15s
 
-  sudo systemctl enable nomad.service
-  sudo systemctl start nomad.service
-  sleep 15s
+export NOMAD_ADDR="http://127.0.0.1:4646"
+
+if [ -z $(consul kv get -keys $KV_PATH/acl) ]; then
+  BOOTSTRAP_TOKEN=$(nomad acl bootstrap -json | jq -r .SecretID)
+
+  consul kv put $KV_PATH/acl/bootstrap_token $BOOTSTRAP_TOKEN
 fi
 
 source ../core/env.sh
-
-if [ -z $(consul kv get -keys $KV_PATH/acl) ]; then
-  export NOMAD_TOKEN=$(nomad acl bootstrap -json | jq -r .SecretID)
-  consul kv put $KV_PATH/acl/bootstrap_token $NOMAD_TOKEN
-fi
 
 nomad server members
 nomad node status
 nomad status
 
 NOMAD_SERVERS=$(nomad server members -json | jq -r -c [.[].Addr])
-consul kv put $KV_PATH/servers $NOMAD_SERVERS
+consul kv put $KV_PATH/servers/addresses $NOMAD_SERVERS
 
 consul kv export $KV_PATH > $ARTIFACTS_DIR/kv.json
 

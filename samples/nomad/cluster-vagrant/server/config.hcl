@@ -15,7 +15,7 @@ server {
   encrypt = "{{ key "nomad/gossip/key" }}"
 
   server_join {
-    retry_join = {{ key "nomad/servers" }}
+    retry_join = {{ key "nomad/servers/addresses" }}
   }
 }
 

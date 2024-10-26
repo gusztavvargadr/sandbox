@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 
-nomad job run ./job.hcl
+set -euo pipefail
 
-export CONSUL_HTTP_ADDR="http://127.0.0.1:8500"
+DIR=$(dirname "$0")
+pushd $DIR
+
+ARTIFACTS_DIR="${ARTIFACTS_DIR:-$DIR/artifacts}"
+mkdir -p $ARTIFACTS_DIR
+
+nohup consul agent -dev -config-file=./consul.hcl > $ARTIFACTS_DIR/consul.log 2>&1 &
+sleep 5s
 
 consul members
+
+popd
