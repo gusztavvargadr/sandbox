@@ -13,10 +13,6 @@ advertise {
 server {
   enabled = true
   encrypt = "{{ key "nomad/gossip/key" }}"
-
-  server_join {
-    retry_join = {{ key "nomad/servers/addresses" }}
-  }
 }
 
 tls {
