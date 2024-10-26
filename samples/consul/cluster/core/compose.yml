@@ -1,7 +1,0 @@
-services:
-  consul:
-    build:
-      context: .
-      dockerfile: consul.Dockerfile
-    ports:
-      - "58500:8500"
