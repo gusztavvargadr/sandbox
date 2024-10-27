@@ -18,6 +18,5 @@ source ../../core/env.sh
 
 nomad server members
 nomad node status
-nomad status
 
 popd

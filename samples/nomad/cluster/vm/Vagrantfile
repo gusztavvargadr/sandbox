@@ -1,0 +1,52 @@
+directory = File.dirname(__FILE__)
+
+load "#{directory}/../../../../src/core.Vagrantfile"
+
+bootstrap_enabled = true
+server_count = 0
+client_count = 0
+
+source_directory = "/var/tmp/cluster"
+artifacts_directory = "/vagrant/artifacts"
+
+script_env = {
+  "SOURCE_DIR" => source_directory,
+  "ARTIFACTS_DIR" => artifacts_directory,
+}
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "gusztavvargadr/ubuntu-server-2204-lts"
+
+  config.vm.provision "shell", path: "#{directory}/initialize.sh", privileged: false, env: script_env
+  config.vm.provision "file", source: "#{directory}/../core", destination: source_directory
+
+  config.vm.provision "shell", inline: "bash #{source_directory}/core/initialize.sh", privileged: false, reset: true
+
+  if bootstrap_enabled
+    config.vm.define "bootstrap" do |config|
+      config.vm.hostname = "bootstrap"
+
+      config.vm.provision "shell", inline: "bash #{source_directory}/bootstrap/apply.sh", privileged: false, env: script_env
+    end
+  end
+
+  (1..server_count).each do |server_index|
+    server_name = "server-#{server_index}"
+
+    config.vm.define server_name do |config|
+      config.vm.hostname = server_name
+
+      config.vm.provision "shell", inline: "bash #{source_directory}/server/apply.sh", privileged: false, env: script_env
+    end
+  end
+
+  (1..client_count).each do |client_index|
+    client_name = "client-#{client_index}"
+
+    config.vm.define client_name do |config|
+      config.vm.hostname = client_name
+
+      config.vm.provision "shell", inline: "bash #{source_directory}/client/apply.sh", privileged: false, env: script_env
+    end
+  end
+end

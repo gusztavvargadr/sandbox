@@ -17,11 +17,6 @@ terraform {
       version = "~> 2.5"
     }
   }
-
-  backend "consul" {
-    path = "gusztavvargadr-general.nomad-cluster/terraform/state"
-    gzip = true
-  }
 }
 
 provider "aws" {

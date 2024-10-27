@@ -43,34 +43,6 @@ locals {
   }
 }
 
-resource "aws_s3_object" "bootstrap_config" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "bootstrap/config/nomad.hcl"
-  source = "${path.root}/bootstrap/artifacts/config/nomad.hcl"
-  count  = fileexists("${path.root}/bootstrap/artifacts/config/nomad.hcl") ? 1 : 0
-}
-
-resource "aws_s3_object" "bootstrap_ca_cert" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "bootstrap/config/tls/ca-cert.pem"
-  source = "${path.root}/bootstrap/artifacts/config/tls/ca-cert.pem"
-  count  = fileexists("${path.root}/bootstrap/artifacts/config/tls/ca-cert.pem") ? 1 : 0
-}
-
-resource "aws_s3_object" "bootstrap_nomad_cert" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "bootstrap/config/tls/nomad-cert.pem"
-  source = "${path.root}/bootstrap/artifacts/config/tls/nomad-cert.pem"
-  count  = fileexists("${path.root}/bootstrap/artifacts/config/tls/nomad-cert.pem") ? 1 : 0
-}
-
-resource "aws_s3_object" "bootstrap_nomad_key" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "bootstrap/config/tls/nomad-key.pem"
-  source = "${path.root}/bootstrap/artifacts/config/tls/nomad-key.pem"
-  count  = fileexists("${path.root}/bootstrap/artifacts/config/tls/nomad-key.pem") ? 1 : 0
-}
-
 data "aws_instances" "bootstrap" {
   instance_tags = {
     Name = local.bootstrap_options.name
@@ -99,7 +71,7 @@ locals {
     private_key = module.ssh_key.ssh_key.private
 
     template = "${path.root}/bootstrap.sh"
-    script   = "${path.root}/bootstrap/artifacts/provision.sh"
+    script   = "${path.root}/artifacts/bootstrap.sh"
   }
 }
 
@@ -124,6 +96,18 @@ resource "terraform_data" "bootstrap_provision" {
   }
 
   provisioner "remote-exec" {
+    inline = [
+      "sudo cloud-init status --wait",
+      "mkdir -p /var/tmp/cluster"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../core/"
+    destination = "/var/tmp/cluster"
+  }
+
+  provisioner "remote-exec" {
     script = local.bootstrap_provision_options.script
   }
 
@@ -138,7 +122,8 @@ data "aws_s3_object" "bootstrap_token" {
     terraform_data.bootstrap_provision
   ]
 
-  count = length(terraform_data.bootstrap_provision) > 0 ? 1 : 0
+  # count = length(terraform_data.bootstrap_provision) > 0 ? 1 : 0
+  count = 0
 }
 
 resource "local_sensitive_file" "bootstrap_token" {

@@ -43,34 +43,6 @@ locals {
   }
 }
 
-resource "aws_s3_object" "server_config" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "server/config/nomad.hcl"
-  source = "${path.root}/server/artifacts/config/nomad.hcl"
-  count  = fileexists("${path.root}/server/artifacts/config/nomad.hcl") ? 1 : 0
-}
-
-resource "aws_s3_object" "server_ca_cert" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "server/config/tls/ca-cert.pem"
-  source = "${path.root}/server/artifacts/config/tls/ca-cert.pem"
-  count  = fileexists("${path.root}/server/artifacts/config/tls/ca-cert.pem") ? 1 : 0
-}
-
-resource "aws_s3_object" "server_nomad_cert" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "server/config/tls/nomad-cert.pem"
-  source = "${path.root}/server/artifacts/config/tls/nomad-cert.pem"
-  count  = fileexists("${path.root}/server/artifacts/config/tls/nomad-cert.pem") ? 1 : 0
-}
-
-resource "aws_s3_object" "server_nomad_key" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "server/config/tls/nomad-key.pem"
-  source = "${path.root}/server/artifacts/config/tls/nomad-key.pem"
-  count  = fileexists("${path.root}/server/artifacts/config/tls/nomad-key.pem") ? 1 : 0
-}
-
 data "aws_instances" "server" {
   instance_tags = {
     Name = local.server_options.name
@@ -99,7 +71,7 @@ locals {
     private_key = module.ssh_key.ssh_key.private
 
     template = "${path.root}/server.sh"
-    script   = "${path.root}/server/artifacts/provision.sh"
+    script   = "${path.root}/artifacts/server.sh"
   }
 }
 
@@ -121,6 +93,18 @@ resource "terraform_data" "server_provision" {
     host        = local.server_instances[count.index].public_ip
     user        = local.server_provision_options.user
     private_key = local.server_provision_options.private_key
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo cloud-init status --wait",
+      "mkdir -p /var/tmp/cluster"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../core/"
+    destination = "/var/tmp/cluster"
   }
 
   provisioner "remote-exec" {
