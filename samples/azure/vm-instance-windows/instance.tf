@@ -1,15 +1,15 @@
 locals {
   instance_name = local.deployment_name
 
-  instance_size         = "Standard_D8lds_v5"
-  instance_user         = "ubuntu"
-  instance_disk_type    = "Standard_LRS"
-  instance_disk_size    = 255
-  instance_disk_caching = "ReadOnly"
+  instance_size         = "Standard_B2ts_v2"
+  instance_user         = "windows"
+  instance_disk_type    = "Premium_LRS"
+  instance_disk_size    = 31
+  instance_disk_caching = "ReadWrite"
 
-  instance_image_publisher = "Canonical"
-  instance_image_offer     = "0001-com-ubuntu-server-jammy"
-  instance_image_sku       = "22_04-lts-gen2"
+  instance_image_publisher = "MicrosoftWindowsServer"
+  instance_image_offer     = "WindowsServer"
+  instance_image_sku       = "2022-datacenter-azure-edition-smalldisk"
   instance_image_version   = "latest"
 }
 
@@ -49,7 +49,11 @@ resource "azurerm_network_interface_security_group_association" "instance" {
   network_security_group_id = local.security_group_id
 }
 
-resource "azurerm_linux_virtual_machine" "instance" {
+resource "random_password" "instance" {
+  length = 16
+}
+
+resource "azurerm_windows_virtual_machine" "instance" {
   resource_group_name = local.resource_group_name
 
   name     = local.instance_name
@@ -62,21 +66,16 @@ resource "azurerm_linux_virtual_machine" "instance" {
     version   = local.instance_image_version
   }
 
-  computer_name = "ubuntu"
+  computer_name = "windows"
 
   size            = local.instance_size
   priority        = "Spot"
-  eviction_policy = "Delete"
+  eviction_policy = "Deallocate"
 
   os_disk {
     storage_account_type = local.instance_disk_type
     disk_size_gb         = local.instance_disk_size
     caching              = local.instance_disk_caching
-
-    diff_disk_settings {
-      option    = "Local"
-      placement = "ResourceDisk"
-    }
   }
 
   network_interface_ids = [
@@ -84,18 +83,12 @@ resource "azurerm_linux_virtual_machine" "instance" {
   ]
 
   admin_username = local.instance_user
-
-  admin_ssh_key {
-    username   = local.instance_user
-    public_key = local.ssh_key_public
-  }
-
-  custom_data = base64encode(file("${path.root}/user-data.sh"))
+  admin_password = random_password.instance.result
 }
 
 locals {
-  instance_id = azurerm_linux_virtual_machine.instance.id
-  instance_ip = azurerm_linux_virtual_machine.instance.public_ip_address
+  instance_id = azurerm_windows_virtual_machine.instance.id
+  instance_ip = azurerm_windows_virtual_machine.instance.public_ip_address
 }
 
 output "instance_id" {
@@ -108,4 +101,9 @@ output "instance_name" {
 
 output "instance_ip" {
   value = local.instance_ip
+}
+
+output "instance_password" {
+  value     = azurerm_windows_virtual_machine.instance.admin_password
+  sensitive = true
 }

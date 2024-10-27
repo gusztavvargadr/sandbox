@@ -1,11 +1,11 @@
 variable "component_name" {
   type    = string
-  default = "general-azure-vm-instance-win-ephemeral"
+  default = "general-azure-vm-instance-w5s-ephemeral"
 }
 
 variable "environment_name" {
   type    = string
-  default = "default"
+  default = ""
 }
 
 variable "location_name" {
@@ -14,8 +14,9 @@ variable "location_name" {
 }
 
 locals {
-  deployment_name = "${var.component_name}-${var.environment_name}"
-  location_name   = var.location_name
+  environment_name = coalesce(var.environment_name, terraform.workspace)
+  deployment_name  = "${var.component_name}-${local.environment_name}"
+  location_name    = var.location_name
 }
 
 output "deployment_name" {

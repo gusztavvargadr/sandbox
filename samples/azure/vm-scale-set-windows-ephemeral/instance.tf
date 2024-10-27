@@ -6,6 +6,11 @@ locals {
   instance_disk_type    = "Standard_LRS"
   instance_disk_size    = 255
   instance_disk_caching = "ReadOnly"
+
+  instance_image_publisher = "MicrosoftWindowsServer"
+  instance_image_offer     = "WindowsServer"
+  instance_image_sku       = "2022-datacenter-azure-edition-smalldisk"
+  instance_image_version   = "latest"
 }
 
 resource "azurerm_network_interface" "instance" {
@@ -32,11 +37,17 @@ resource "random_password" "instance" {
 resource "azurerm_windows_virtual_machine_scale_set" "instance" {
   resource_group_name = local.resource_group_name
 
-  name                 = local.instance_name
-  computer_name_prefix = "windows"
-  location             = local.location_name
+  name     = local.instance_name
+  location = local.location_name
 
-  source_image_id = "/subscriptions/c81f8944-4346-498b-9080-4e3ef050b052/resourceGroups/vsts-agents/providers/Microsoft.Compute/images/windows-24092000"
+  source_image_reference {
+    publisher = local.instance_image_publisher
+    offer     = local.instance_image_offer
+    sku       = local.instance_image_sku
+    version   = local.instance_image_version
+  }
+
+  computer_name_prefix = "windows"
 
   sku             = local.instance_size
   priority        = "Spot"
@@ -81,4 +92,9 @@ output "instance_id" {
 
 output "instance_name" {
   value = local.instance_name
+}
+
+output "instance_password" {
+  value     = azurerm_windows_virtual_machine_scale_set.instance.admin_password
+  sensitive = true
 }

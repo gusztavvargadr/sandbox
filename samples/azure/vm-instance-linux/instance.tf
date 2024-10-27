@@ -62,9 +62,11 @@ resource "azurerm_linux_virtual_machine" "instance" {
     version   = local.instance_image_version
   }
 
+  computer_name = "ubuntu"
+
   size            = local.instance_size
   priority        = "Spot"
-  eviction_policy = "Delete"
+  eviction_policy = "Deallocate"
 
   os_disk {
     storage_account_type = local.instance_disk_type

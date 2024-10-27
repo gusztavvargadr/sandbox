@@ -1,6 +1,6 @@
 variable "component_name" {
   type    = string
-  default = "general-azure-vm-instance-l3x-ephemeral"
+  default = "general-azure-vm-instance-l3x"
 }
 
 variable "environment_name" {
