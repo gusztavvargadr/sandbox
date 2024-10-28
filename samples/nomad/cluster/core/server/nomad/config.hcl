@@ -2,14 +2,6 @@ data_dir = "{{ key "nomad/core/data_dir" }}"
 
 bind_addr = "0.0.0.0"
 
-addresses {
-  http = "127.0.0.1"
-}
-
-advertise {
-  http = "127.0.0.1"
-}
-
 server {
   enabled = true
   encrypt = "{{ key "nomad/gossip/key" }}"

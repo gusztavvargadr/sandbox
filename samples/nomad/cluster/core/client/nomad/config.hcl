@@ -46,3 +46,7 @@ plugin "docker" {
     }
   }
 }
+
+ui {
+  enabled = false
+}

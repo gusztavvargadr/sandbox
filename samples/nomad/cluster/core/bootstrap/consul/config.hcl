@@ -1,6 +1,7 @@
 data_dir = "{{ key "consul/core/data_dir" }}"
 
 bind_addr   = "{{ `{{ GetDefaultInterfaces | attr \"address\" }}` }}"
+client_addr = "0.0.0.0"
 
 server           = true
 bootstrap_expect = 1
@@ -32,6 +33,11 @@ tls {
 
 auto_encrypt {
   allow_tls = true
+}
+
+ports {
+  grpc = 8502
+  grpc_tls = 8503
 }
 
 acl {

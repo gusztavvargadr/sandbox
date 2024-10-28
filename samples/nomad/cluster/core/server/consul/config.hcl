@@ -1,6 +1,7 @@
 data_dir = "{{ key "consul/core/data_dir" }}"
 
 bind_addr   = "{{ `{{ GetDefaultInterfaces | attr \"address\" }}` }}"
+client_addr = "0.0.0.0"
 
 server     = true
 retry_join = [ {{ key "consul/servers/addresses" }} ]
@@ -43,6 +44,11 @@ acl {
 
 auto_encrypt {
   allow_tls = true
+}
+
+ports {
+  grpc = 8502
+  grpc_tls = 8503
 }
 
 connect {
