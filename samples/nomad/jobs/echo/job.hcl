@@ -19,7 +19,7 @@ job "echo" {
       driver = "docker"
 
       config {
-        image = "hashicorp/http-echo"
+        image = "ghcr.io/gusztavvargadr/general-nomad-jobs-echo-server:latest"
         ports = ["server-http"]
         args = [
           "-text",

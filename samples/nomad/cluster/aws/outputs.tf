@@ -6,12 +6,12 @@ output "aws" {
   value = local.aws
 }
 
-output "launch_template" {
-  value = local.launch_template
-}
-
 output "s3" {
   value = local.s3
+}
+
+output "bootstrap_launch_template" {
+  value = local.bootstrap_launch_template
 }
 
 output "bootstrap_autoscaling_group" {
@@ -22,9 +22,8 @@ output "bootstrap_instances" {
   value = local.bootstrap_instances
 }
 
-output "bootstrap_token" {
-  value = local.bootstrap_token
-  sensitive = true
+output "server_launch_template" {
+  value = local.server_launch_template
 }
 
 output "server_autoscaling_group" {

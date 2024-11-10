@@ -1,6 +1,10 @@
 services:
   api:
-    image: dotnet-api:local
+    image: ghcr.io/gusztavvargadr/general-nomad-jobs-dotnet-api:latest
     build:
       context: .
       dockerfile: ./src/api/Dockerfile
+    ports:
+      - 8080
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development

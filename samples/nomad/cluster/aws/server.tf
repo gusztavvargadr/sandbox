@@ -4,14 +4,103 @@ locals {
 
     instance_count = var.server.instance_count
     instance_type  = var.server.instance_type
+
+    template = "${path.root}/server.userdata.sh"
   }
+}
+
+locals {
+  server_launch_template_options = {
+    name = local.server_options.name
+
+    ami_id = local.ami.id
+
+    instance_type = local.server_options.instance_type
+
+    vpc_id = local.vpc.id
+
+    public_key = module.ssh_key.ssh_key.public
+    user_data = templatefile(local.server_options.template, {
+      bucket = local.s3.bucket_name
+    })
+  }
+}
+
+module "server_launch_template" {
+  source = "../../../../src/aws/ec2-launch-template"
+
+  launch_template = local.server_launch_template_options
+}
+
+locals {
+  server_launch_template = module.server_launch_template.launch_template
+}
+
+resource "aws_vpc_security_group_egress_rule" "server_internet" {
+  security_group_id = local.server_launch_template.security_group_id
+
+  ip_protocol = "-1"
+  cidr_ipv4   = "0.0.0.0/0"
+
+  tags = {
+    Name = "internet"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "server_internet" {
+  security_group_id = local.server_launch_template.security_group_id
+
+  ip_protocol = "-1"
+  cidr_ipv4   = "${local.local_ip}/32"
+
+  tags = {
+    Name = "internet"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "server_cluster_bootstrap" {
+  security_group_id = local.server_launch_template.security_group_id
+
+  ip_protocol                  = "-1"
+  referenced_security_group_id = local.bootstrap_launch_template.security_group_id
+
+  tags = {
+    Name = "cluster-bootstrap"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "server_cluster_server" {
+  security_group_id = local.server_launch_template.security_group_id
+
+  ip_protocol                  = "-1"
+  referenced_security_group_id = local.server_launch_template.security_group_id
+
+  tags = {
+    Name = "cluster-server"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "server_cluster_client" {
+  security_group_id = local.server_launch_template.security_group_id
+
+  ip_protocol                  = "-1"
+  referenced_security_group_id = local.client_launch_template.security_group_id
+
+  tags = {
+    Name = "cluster-client"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "server_s3" {
+  role       = local.server_launch_template.role_name
+  policy_arn = aws_iam_policy.s3.arn
 }
 
 resource "aws_autoscaling_group" "server" {
   name = local.server_options.name
 
   launch_template {
-    id = local.launch_template.id
+    id = local.server_launch_template.id
   }
 
   vpc_zone_identifier = local.vpc.public_subnet_ids
@@ -70,22 +159,14 @@ locals {
     user        = local.ami_options.user
     private_key = module.ssh_key.ssh_key.private
 
-    template = "${path.root}/server.sh"
-    script   = "${path.root}/artifacts/server.sh"
+    script = "${path.root}/server.provision.sh"
   }
-}
-
-resource "local_file" "server_provision" {
-  filename = local.server_provision_options.script
-  content = templatefile(local.server_provision_options.template, {
-    bucket = local.s3.bucket_name
-  })
 }
 
 resource "terraform_data" "server_provision" {
   triggers_replace = [
     local.server_instances[count.index].public_ip,
-    filemd5(local_file.server_provision.filename)
+    filemd5(local.server_provision_options.script),
   ]
 
   connection {
@@ -96,15 +177,7 @@ resource "terraform_data" "server_provision" {
   }
 
   provisioner "remote-exec" {
-    inline = [
-      "sudo cloud-init status --wait",
-      "mkdir -p /var/tmp/cluster"
-    ]
-  }
-
-  provisioner "file" {
-    source      = "${path.root}/../core/"
-    destination = "/var/tmp/cluster"
+    inline = ["sudo cloud-init status --wait"]
   }
 
   provisioner "remote-exec" {

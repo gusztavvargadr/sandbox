@@ -19,7 +19,7 @@ job "dotnet" {
       driver = "docker"
 
       config {
-        image = "dotnet-api:local"
+        image = "ghcr.io/gusztavvargadr/general-nomad-jobs-dotnet-api:latest"
         ports = ["api-http"]
       }
 

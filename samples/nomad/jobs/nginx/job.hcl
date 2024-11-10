@@ -1,4 +1,6 @@
 job "nginx" {
+  type = "system"
+
   group "nginx" {
     count = 1
 
@@ -37,7 +39,7 @@ upstream consul {
 
 server {
   listen 80;
-  server_name consul-nomad-cluster-vm.gusztavvargadr.me;
+  server_name consul-nomad-cluster.gusztavvargadr.me;
 
   location / {
     proxy_pass http://consul/;
@@ -53,7 +55,7 @@ upstream nomad {
 
 server {
   listen 80;
-  server_name nomad-nomad-cluster-vm.gusztavvargadr.me;
+  server_name nomad-nomad-cluster.gusztavvargadr.me;
 
   location / {
     proxy_pass http://nomad/;
@@ -69,7 +71,7 @@ upstream echo {
 
 server {
   listen 80;
-  server_name echo-nomad-cluster-vm.gusztavvargadr.me;
+  server_name echo-nomad-cluster.gusztavvargadr.me;
 
   location / {
     proxy_pass http://echo/;
@@ -85,7 +87,7 @@ upstream dotnet {
 
 server {
   listen 80;
-  server_name dotnet-nomad-cluster-vm.gusztavvargadr.me;
+  server_name dotnet-nomad-cluster.gusztavvargadr.me;
 
   location / {
     proxy_pass http://dotnet/;
@@ -96,6 +98,11 @@ EOF
         destination   = "local/load-balancer.conf"
         change_mode   = "signal"
         change_signal = "SIGHUP"
+      }
+
+      resources {
+        cpu    = 100
+        memory = 128
       }
     }
   }

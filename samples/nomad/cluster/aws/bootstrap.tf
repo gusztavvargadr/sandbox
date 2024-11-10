@@ -4,14 +4,103 @@ locals {
 
     instance_count = var.bootstrap.instance_count
     instance_type  = var.bootstrap.instance_type
+
+    template = "${path.root}/bootstrap.userdata.sh"
   }
+}
+
+locals {
+  bootstrap_launch_template_options = {
+    name = local.bootstrap_options.name
+
+    ami_id = local.ami.id
+
+    instance_type = local.bootstrap_options.instance_type
+
+    vpc_id = local.vpc.id
+
+    public_key = module.ssh_key.ssh_key.public
+    user_data = templatefile(local.bootstrap_options.template, {
+      bucket = local.s3.bucket_name
+    })
+  }
+}
+
+module "bootstrap_launch_template" {
+  source = "../../../../src/aws/ec2-launch-template"
+
+  launch_template = local.bootstrap_launch_template_options
+}
+
+locals {
+  bootstrap_launch_template = module.bootstrap_launch_template.launch_template
+}
+
+resource "aws_vpc_security_group_egress_rule" "bootstrap_internet" {
+  security_group_id = local.bootstrap_launch_template.security_group_id
+
+  ip_protocol = "-1"
+  cidr_ipv4   = "0.0.0.0/0"
+
+  tags = {
+    Name = "internet"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "bootstrap_internet" {
+  security_group_id = local.bootstrap_launch_template.security_group_id
+
+  ip_protocol = "-1"
+  cidr_ipv4   = "${local.local_ip}/32"
+
+  tags = {
+    Name = "internet"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "bootstrap_cluster_bootstrap" {
+  security_group_id = local.bootstrap_launch_template.security_group_id
+
+  ip_protocol                  = "-1"
+  referenced_security_group_id = local.bootstrap_launch_template.security_group_id
+
+  tags = {
+    Name = "cluster-bootstrap"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "bootstrap_cluster_server" {
+  security_group_id = local.bootstrap_launch_template.security_group_id
+
+  ip_protocol                  = "-1"
+  referenced_security_group_id = local.server_launch_template.security_group_id
+
+  tags = {
+    Name = "cluster-server"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "bootstrap_cluster_client" {
+  security_group_id = local.bootstrap_launch_template.security_group_id
+
+  ip_protocol                  = "-1"
+  referenced_security_group_id = local.client_launch_template.security_group_id
+
+  tags = {
+    Name = "cluster-client"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "bootstrap_s3" {
+  role       = local.bootstrap_launch_template.role_name
+  policy_arn = aws_iam_policy.s3.arn
 }
 
 resource "aws_autoscaling_group" "bootstrap" {
   name = local.bootstrap_options.name
 
   launch_template {
-    id = local.launch_template.id
+    id = local.bootstrap_launch_template.id
   }
 
   vpc_zone_identifier = local.vpc.public_subnet_ids
@@ -70,22 +159,14 @@ locals {
     user        = local.ami_options.user
     private_key = module.ssh_key.ssh_key.private
 
-    template = "${path.root}/bootstrap.sh"
-    script   = "${path.root}/artifacts/bootstrap.sh"
+    script = "${path.root}/bootstrap.provision.sh"
   }
-}
-
-resource "local_file" "bootstrap_provision" {
-  filename = local.bootstrap_provision_options.script
-  content = templatefile(local.bootstrap_provision_options.template, {
-    bucket = local.s3.bucket_name
-  })
 }
 
 resource "terraform_data" "bootstrap_provision" {
   triggers_replace = [
     local.bootstrap_instances[count.index].public_ip,
-    filemd5(local_file.bootstrap_provision.filename)
+    filemd5(local.bootstrap_provision_options.script),
   ]
 
   connection {
@@ -96,15 +177,7 @@ resource "terraform_data" "bootstrap_provision" {
   }
 
   provisioner "remote-exec" {
-    inline = [
-      "sudo cloud-init status --wait",
-      "mkdir -p /var/tmp/cluster"
-    ]
-  }
-
-  provisioner "file" {
-    source      = "${path.root}/../core/"
-    destination = "/var/tmp/cluster"
+    inline = ["sudo cloud-init status --wait"]
   }
 
   provisioner "remote-exec" {
@@ -112,27 +185,4 @@ resource "terraform_data" "bootstrap_provision" {
   }
 
   count = length(local.bootstrap_instances)
-}
-
-data "aws_s3_object" "bootstrap_token" {
-  bucket = aws_s3_bucket.default.bucket
-  key    = "core/acl/bootstrap.json"
-
-  depends_on = [
-    terraform_data.bootstrap_provision
-  ]
-
-  # count = length(terraform_data.bootstrap_provision) > 0 ? 1 : 0
-  count = 0
-}
-
-resource "local_sensitive_file" "bootstrap_token" {
-  filename = "${path.root}/core/artifacts/acl/bootstrap.json"
-  content  = data.aws_s3_object.bootstrap_token[0].body
-
-  count = length(data.aws_s3_object.bootstrap_token) > 0 ? 1 : 0
-}
-
-locals {
-  bootstrap_token = length(local_sensitive_file.bootstrap_token) > 0 ? jsondecode(local_sensitive_file.bootstrap_token[0].content) : null
 }

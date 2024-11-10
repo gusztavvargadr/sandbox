@@ -16,7 +16,8 @@ variable "aws" {
 
 variable "ami" {
   type = object({
-    name = optional(string, "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*")
+    name = optional(string, "gusztavvargadr-general-nomad-cluster-*")
+    owner = optional(string, "self")
     user = optional(string, "ubuntu")
   })
   default = {}
