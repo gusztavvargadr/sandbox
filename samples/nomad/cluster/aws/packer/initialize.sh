@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+lsb_release -a
+
+df -h
+
 bash /var/tmp/cluster/core/initialize.sh
 
 if [ -z "$(aws --version)" ]; then
@@ -12,3 +16,8 @@ if [ -z "$(aws --version)" ]; then
   sudo ./aws/install
   popd
 fi
+
+sudo find /var/cache -type f -exec rm -rf {} \;
+sudo find /var/log -type f -exec truncate --size=0 {} \;
+
+df -h

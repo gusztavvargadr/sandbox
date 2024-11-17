@@ -39,7 +39,7 @@ upstream consul {
 
 server {
   listen 80;
-  server_name consul-nomad-cluster.gusztavvargadr.me;
+  server_name consul.gusztavvargadr.me;
 
   location / {
     proxy_pass http://consul/;
@@ -55,7 +55,7 @@ upstream nomad {
 
 server {
   listen 80;
-  server_name nomad-nomad-cluster.gusztavvargadr.me;
+  server_name nomad.gusztavvargadr.me;
 
   location / {
     proxy_pass http://nomad/;
@@ -71,7 +71,7 @@ upstream echo {
 
 server {
   listen 80;
-  server_name echo-nomad-cluster.gusztavvargadr.me;
+  server_name echo.gusztavvargadr.me;
 
   location / {
     proxy_pass http://echo/;
@@ -87,7 +87,7 @@ upstream dotnet {
 
 server {
   listen 80;
-  server_name dotnet-nomad-cluster.gusztavvargadr.me;
+  server_name dotnet.gusztavvargadr.me;
 
   location / {
     proxy_pass http://dotnet/;
