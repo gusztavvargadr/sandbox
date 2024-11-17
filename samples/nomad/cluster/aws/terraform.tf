@@ -11,11 +11,11 @@ terraform {
       source  = "hashicorp/http"
       version = "~> 3.4"
     }
-  }
 
-  backend "consul" {
-    path = "gusztavvargadr-general.aws-ec2-instance/terraform/state"
-    gzip = true
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.5"
+    }
   }
 }
 

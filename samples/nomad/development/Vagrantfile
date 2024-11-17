@@ -1,0 +1,12 @@
+directory = File.dirname(__FILE__)
+
+load "#{directory}/../../../src/core.Vagrantfile"
+
+guest_directory = "/vagrant"
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "gusztavvargadr/ubuntu-server-2204-lts"
+
+  config.vm.provision "shell", inline: "bash #{guest_directory}/initialize.sh", privileged: false, reset: true
+  config.vm.provision "shell", inline: "bash #{guest_directory}/apply.sh", privileged: false, run: "always"
+end

@@ -1,0 +1,7 @@
+services:
+  consul:
+    build:
+      context: .
+      dockerfile: consul.Dockerfile
+    ports:
+      - "127.0.0.1:58500:8500"

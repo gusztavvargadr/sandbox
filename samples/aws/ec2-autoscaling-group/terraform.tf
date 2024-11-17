@@ -14,7 +14,7 @@ terraform {
   }
 
   backend "consul" {
-    path = "gusztavvargadr-general.aws-ec2-instance/terraform/state"
+    path = "gusztavvargadr-general.aws-ec2-autoscaling-group/terraform/state"
     gzip = true
   }
 }

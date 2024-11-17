@@ -1,0 +1,8 @@
+services:
+  server:
+    image: ghcr.io/gusztavvargadr/general-nomad-jobs-echo:latest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 5678
